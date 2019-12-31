@@ -1,5 +1,6 @@
 from config import Config
-from telegram.ext import Updater, ConversationHandler, CommandHandler, MessageHandler, Filters
+from telegram.ext import Updater, ConversationHandler, CommandHandler, MessageHandler, Filters, CallbackQueryHandler
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 import logging
 from english_words.new_word_conversation_handler import NewWordConversationHandler
 from english_words.guess_word import GuessWordHandler
@@ -13,9 +14,32 @@ def error(update, context):
     logging.warning('Update "%s" caused error "%s"', update, context.error)
 
 
+def start_old(update, context):
+    keyboard = [[InlineKeyboardButton("New word", callback_data="/newword"), InlineKeyboardButton("Guess word", callback_data="/guessword")]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    update.message.reply_text("Hello, I am english phrase bot. Choose what you want to do.", reply_markup=reply_markup)
+
+
+def start(update, context):
+    update.message.reply_text("Choose what you want?\n /newword \n /guessword\n /guessfromphrase\n")
+
+
+def help(update, context):
+    update.message.reply_text("Choose what you want?\n /newword \n /guessword\n /guessfromphrase\n")
+
+
+def button(update, context):
+    query = update.callback_query
+    query.edit_message_text(text=query.data)
+
+
 def main():
     updater = Updater(token=Config.token, use_context=True)
     dispatcher = updater.dispatcher
+
+    dispatcher.add_handler(CommandHandler("start", start))
+    dispatcher.add_handler(CommandHandler("help", help))
+    # dispatcher.add_handler(CallbackQueryHandler(button))
 
     engine = create_engine("sqlite:///english_words.sqlite")
     new_word_handler_obj = NewWordConversationHandler(engine)
@@ -34,13 +58,18 @@ def main():
     dispatcher.add_handler(new_word_handler)
 
     guess_word_obj = GuessWordHandler(engine)
-    guess_word_handler = ConversationHandler(entry_points=[CommandHandler("guess_word", guess_word_obj.start)],
+    guess_word_handler = ConversationHandler(entry_points=[CommandHandler("guessword", guess_word_obj.start)],
                                              states={
                                                  guess_word_obj.GUESSWORD: [MessageHandler(Filters.text, guess_word_obj.guess_word)]
                                              },
                                              fallbacks=[CommandHandler("showanswer", guess_word_obj.show_answer)])
 
     dispatcher.add_handler(guess_word_handler)
+
+    guess_from_phrase_handler = ConversationHandler(entry_points=[CommandHandler("guessfromphrase", guess_word_obj.start_guess_from_phrase)],
+                                                    states={guess_word_obj.GUESS_FROM_PHRASE: [MessageHandler(Filters.text, guess_word_obj.guess_from_phrase)]},
+                                                    fallbacks=[CommandHandler("showanswer", guess_word_obj.show_answer)])
+    dispatcher.add_handler(guess_from_phrase_handler)
 
     dispatcher.add_error_handler(error)
     updater.start_polling()
