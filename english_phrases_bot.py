@@ -21,7 +21,9 @@ def start_old(update, context):
 
 
 def start(update, context):
-    update.message.reply_text("Choose what you want?\n /newword \n /guessword\n /guessfromphrase\n")
+    keyboard = [[InlineKeyboardButton('Guess a word', callback_data="/guessword")], [InlineKeyboardButton("Guess from phrase", callback_data="/guessfromphrase")]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    update.message.reply_text("Choose what you want", reply_markup=reply_markup)
 
 
 def help(update, context):
@@ -30,7 +32,7 @@ def help(update, context):
 
 def button(update, context):
     query = update.callback_query
-    query.edit_message_text(text=query.data)
+    context.bot.send_message(chat_id=update.effective_chat.id, text=query.data)
 
 
 def main():
@@ -60,16 +62,26 @@ def main():
     guess_word_obj = GuessWordHandler(engine)
     guess_word_handler = ConversationHandler(entry_points=[CommandHandler("guessword", guess_word_obj.start)],
                                              states={
-                                                 guess_word_obj.GUESSWORD: [MessageHandler(Filters.text, guess_word_obj.guess_word)]
+                                                 guess_word_obj.GUESSWORD: [MessageHandler(Filters.text, guess_word_obj.guess_word)],
+                                                 guess_word_obj.NOTHING: [MessageHandler(Filters.text, guess_word_obj.any_state_handler)]
                                              },
-                                             fallbacks=[CommandHandler("showanswer", guess_word_obj.show_answer)])
+                                             fallbacks=[CommandHandler("showanswer", guess_word_obj.show_answer),
+                                                        CommandHandler("show_phrase", guess_word_obj.show_phrase),
+                                                        CommandHandler("show_uzbek", guess_word_obj.show_uzbek),
+                                                        CommandHandler("show_russian", guess_word_obj.show_russian)])
 
     dispatcher.add_handler(guess_word_handler)
 
     guess_from_phrase_handler = ConversationHandler(entry_points=[CommandHandler("guessfromphrase", guess_word_obj.start_guess_from_phrase)],
-                                                    states={guess_word_obj.GUESS_FROM_PHRASE: [MessageHandler(Filters.text, guess_word_obj.guess_from_phrase)]},
-                                                    fallbacks=[CommandHandler("showanswer", guess_word_obj.show_answer)])
+                                                    states={guess_word_obj.GUESS_FROM_PHRASE: [MessageHandler(Filters.text, guess_word_obj.guess_from_phrase)],
+                                                            guess_word_obj.NOTHING: [MessageHandler(Filters.text, guess_word_obj.any_state_handler)]},
+                                                    fallbacks=[CommandHandler("showanswer", guess_word_obj.show_answer),
+                                                               CommandHandler("show_phrase", guess_word_obj.show_phrase),
+                                                               CommandHandler("show_uzbek", guess_word_obj.show_uzbek),
+                                                               CommandHandler("show_russian", guess_word_obj.show_russian)])
     dispatcher.add_handler(guess_from_phrase_handler)
+
+    dispatcher.add_handler(CallbackQueryHandler(button))
 
     dispatcher.add_error_handler(error)
     updater.start_polling()
