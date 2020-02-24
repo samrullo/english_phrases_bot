@@ -4,6 +4,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 import logging
 from english_words.new_word_conversation_handler import NewWordConversationHandler
 from english_words.edit_word import EditWordConversationHandler
+from english_words.remove_word import RemoveWordConversationHandler
 from english_words.guess_word import GuessWordHandler
 from sqlalchemy import create_engine
 import pandas as pd
@@ -29,6 +30,7 @@ def start(update, context):
                 [InlineKeyboardButton("Guess from phrase", callback_data="/guessfromphrase")],
                 [InlineKeyboardButton("Add a new word", callback_data="/newword")],
                 [InlineKeyboardButton("Edit a word", callback_data="/edit_word_start")],
+                [InlineKeyboardButton("Remove a word", callback_data="/remove_word")],
                 [InlineKeyboardButton("View all words", callback_data="/view_all_words")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     update.message.reply_text("Choose what you want", reply_markup=reply_markup)
@@ -121,6 +123,13 @@ def main():
                                                                CommandHandler("everything", guess_word_obj.show_everything),
                                                                CommandHandler("end", guess_word_obj.end)])
     dispatcher.add_handler(guess_from_phrase_handler)
+
+    # Conversation Handler to remove a word
+    remove_word_obj = RemoveWordConversationHandler(engine)
+    remove_word_handler = ConversationHandler(entry_points=[CommandHandler("remove_word", remove_word_obj.send_list_of_words)],
+                                              states={remove_word_obj.REMOVE: [CallbackQueryHandler(remove_word_obj.remove_word)]},
+                                              fallbacks=[CommandHandler("cancel", remove_word_obj.cancel)])
+    dispatcher.add_handler(remove_word_handler)
 
     dispatcher.add_handler(CallbackQueryHandler(button))
 
