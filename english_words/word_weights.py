@@ -28,16 +28,17 @@ class WordWeight:
         df.sort_values('weight', inplace=True)
         return df
 
-    def update_weight(self, id):
-        query = f"select * from {self.tablename} where id={id}"
+    def update_weight(self, word_id):
+        word_id = int(word_id)
+        query = f"select * from {self.tablename} where `word_id`={word_id}"
         df = pd.read_sql(query, self.engine)
         con = self.engine.connect()
         if len(df) == 0:
-            stmt = self.tbl.insert().values({"word_id": id, "weight": 1})
+            stmt = self.tbl.insert().values({"word_id": word_id, "weight": 1})
             con.execute(stmt)
-            logging.info(f"inserted word weight for {id}")
+            logging.info(f"inserted word weight for {word_id}")
         else:
             df.loc[0, 'weight'] += 1
-            stmt = self.tbl.update().where(self.tbl.c.id == id).values({'weight': df.loc[0, 'weight']})
+            stmt = self.tbl.update().where(self.tbl.c.word_id == word_id).values({'weight': df.loc[0, 'weight']})
             con.execute(stmt)
-            logging.info(f"update weight of {id} to {df.loc[0, 'weight']}")
+            logging.info(f"update weight of {word_id} to {df.loc[0, 'weight']}")
