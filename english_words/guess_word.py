@@ -103,5 +103,5 @@ class GuessWordHandler:
         update.message.reply_text(self.get_option_list())
 
     def end(self, update, context):
-        update.message.reply_text("have a nice day, bye...")
+        update.message.reply_text("have a nice day, bye...\n/guessword to guess a word again\n/guessfromphrase to guess from phrase again")
         return ConversationHandler.END
